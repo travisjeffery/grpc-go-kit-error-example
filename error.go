@@ -1,3 +1,8 @@
+// Copyright (c) 2016 The Upspin Authors. All rights reserved.
+// A lot of this was stolen from upspin
+// (https://github.com/upspin/upspin/blob/master/errors/errors.go) and then
+// modified.
+
 package example
 
 // populateStack uses the runtime to populate the Error's stack struct with
@@ -65,20 +70,6 @@ func (e *Error) populateStack() {
 	e.Stack = &Stack{Callers: callers()}
 }
 
-// frame returns the nth frame, with the frame at top of stack being 0.
-func frame(callers []uintptr, n int) *runtime.Frame {
-	frames := runtime.CallersFrames(callers)
-	var f runtime.Frame
-	for i := len(callers) - 1; i >= n; i-- {
-		var ok bool
-		f, ok = frames.Next()
-		if !ok {
-			break // Should never happen, and this is just debugging.
-		}
-	}
-	return &f
-}
-
 // printStack formats and prints the stack for this Error to the given buffer.
 // It should be called from the Error's Error method.
 func (e *Error) printStack(b *bytes.Buffer) {
@@ -137,6 +128,20 @@ func (e *Error) printStack(b *bytes.Buffer) {
 
 		prev = name
 	}
+}
+
+// frame returns the nth frame, with the frame at top of stack being 0.
+func frame(callers []uintptr, n int) *runtime.Frame {
+	frames := runtime.CallersFrames(callers)
+	var f runtime.Frame
+	for i := len(callers) - 1; i >= n; i-- {
+		var ok bool
+		f, ok = frames.Next()
+		if !ok {
+			break // Should never happen, and this is just debugging.
+		}
+	}
+	return &f
 }
 
 // callers is a wrapper for runtime.callers that allocates a slice.
