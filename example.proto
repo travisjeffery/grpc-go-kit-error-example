@@ -22,7 +22,7 @@ message Error {
   int32 code = 2;
   map<string, string> nested_errors = 3;
   repeated string details = 4;
-  repeated uint64 callers = 5 [(gogoproto.customname) = "callers", (gogoproto.casttype) = "uintptr"];
+  bytes stack = 5 [(gogoproto.customtype) = "Stack"];
 }
 
 message User {

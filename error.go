@@ -59,28 +59,43 @@ func E(args ...interface{}) error {
 	return e
 }
 
+// populateStack uses the runtime to populate the Error's stack struct with
 // information about the current stack.
 func (e *Error) populateStack() {
-	e.callers = callers()
+	e.Stack = &Stack{Callers: callers()}
+}
+
+// frame returns the nth frame, with the frame at top of stack being 0.
+func frame(callers []uintptr, n int) *runtime.Frame {
+	frames := runtime.CallersFrames(callers)
+	var f runtime.Frame
+	for i := len(callers) - 1; i >= n; i-- {
+		var ok bool
+		f, ok = frames.Next()
+		if !ok {
+			break // Should never happen, and this is just debugging.
+		}
+	}
+	return &f
 }
 
 // printStack formats and prints the stack for this Error to the given buffer.
 // It should be called from the Error's Error method.
 func (e *Error) printStack(b *bytes.Buffer) {
-	if e.callers == nil {
+	if e.Stack == nil {
 		return
 	}
 
 	printCallers := callers()
 
-	// Iterate backward through e.callers (the last in the stack is the
+	// Iterate backward through e.Stack.Callers (the last in the stack is the
 	// earliest call, such as main) skipping over the PCs that are shared
 	// by the error stack and by this function call stack, printing the
 	// names of the functions and their file names and line numbers.
 	var prev string // the name of the last-seen function
 	var diff bool   // do the print and error call stacks differ now?
-	for i := 0; i < len(e.callers); i++ {
-		thisFrame := frame(e.callers, i)
+	for i := 0; i < len(e.Stack.Callers); i++ {
+		thisFrame := frame(e.Stack.Callers, i)
 		name := thisFrame.Func.Name()
 
 		if !diff && i < len(printCallers) {
@@ -130,20 +145,6 @@ func callers() []uintptr {
 	const skip = 4 // Skip 4 stack frames; ok for both E and Error funcs.
 	n := runtime.Callers(skip, stk[:])
 	return stk[:n]
-}
-
-// frame returns the nth frame, with the frame at top of stack being 0.
-func frame(callers []uintptr, n int) *runtime.Frame {
-	frames := runtime.CallersFrames(callers)
-	var f runtime.Frame
-	for i := len(callers) - 1; i >= n; i-- {
-		var ok bool
-		f, ok = frames.Next()
-		if !ok {
-			break // Should never happen, and this is just debugging.
-		}
-	}
-	return &f
 }
 
 var separator = ":\n\t"
